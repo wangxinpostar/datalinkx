@@ -4,8 +4,8 @@ import java.util.Date;
 
 import com.datalinkx.common.constants.MetaConstants;
 import com.datalinkx.common.utils.JsonUtils;
-import com.datalinkx.datajob.action.FlinkAction;
-import com.datalinkx.datajob.bean.DataTransJobParam;
+import com.datalinkx.datajob.action.DataTransferAction;
+import com.datalinkx.datajob.bean.DataTransferJobParam;
 import com.datalinkx.datajob.bean.JobExecCountDto;
 import com.datalinkx.datajob.bean.JobStateForm;
 import com.datalinkx.datajob.client.datalinkxserver.DatalinkXServerClient;
@@ -24,16 +24,16 @@ import org.springframework.stereotype.Component;
  * Data Trans Job Handler
  */
 @Component
-public class DataTransHandler {
-    private static Logger logger = LoggerFactory.getLogger(DataTransHandler.class);
+public class DataTransferHandler {
+    private static Logger logger = LoggerFactory.getLogger(DataTransferHandler.class);
 
     @Autowired
-    private FlinkAction flinkAction;
+    private DataTransferAction dataTransferAction;
 
     @Autowired
     private DatalinkXServerClient dataServerClient;
 
-    public DataTransJobDetail getJobDetail(DataTransJobParam jobParam) {
+    public DataTransJobDetail getJobDetail(DataTransferJobParam jobParam) {
         return dataServerClient.getJobExecInfo(jobParam.getJobId()).getResult();
     }
 
@@ -44,7 +44,7 @@ public class DataTransHandler {
     @XxlJob("dataTransJobHandler")
     public void dataTransJobHandler() throws InterruptedException {
         XxlJobHelper.log("begin dataTransJobHandler. ");
-        DataTransJobParam jobParam = JsonUtils.toObject(XxlJobHelper.getJobParam(), DataTransJobParam.class);
+        DataTransferJobParam jobParam = JsonUtils.toObject(XxlJobHelper.getJobParam(), DataTransferJobParam.class);
 
         // 生成任务content
         JobUtils.initContext();
@@ -56,7 +56,7 @@ public class DataTransHandler {
         try {
             jobDetail = this.getJobDetail(jobParam);
             JobUtils.cntx().setTotal(jobDetail.getSyncUnits().size());
-            flinkAction.doAction(jobDetail);
+            dataTransferAction.doAction(jobDetail);
         } catch (InterruptedException e) {
             // cancel job
             throw e;
@@ -74,7 +74,7 @@ public class DataTransHandler {
         XxlJobHelper.handleSuccess("success");
     }
 
-    private void shutdownJob(long startTime, DataTransJobParam jobParam, int status, String message) {
+    private void shutdownJob(long startTime, DataTransferJobParam jobParam, int status, String message) {
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
         dataServerClient.updateJobStatus(JobStateForm.builder().jobId(jobParam.getJobId())
                 .jobStatus(status).startTime(startTime).endTime(new Date().getTime())

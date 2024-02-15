@@ -1,19 +1,16 @@
 package com.datalinkx.dataserver.bean.domain;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-import lombok.experimental.FieldNameConstants;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
@@ -24,21 +21,18 @@ import org.hibernate.annotations.DynamicUpdate;
  * @date 2020-02-12 14:15:20
  */
 @ApiModel(description = "数据表")
-
+@Entity
+@DynamicUpdate
+@DynamicInsert
+@EqualsAndHashCode(callSuper = true)
 @Data
-@FieldNameConstants
-@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
-@Entity
-@DynamicInsert
-@DynamicUpdate
 @Table(name = "DS_TB")
-public class DsTbBean extends BaseDomainBean {
+public class DsTbBean extends BaseEntity {
 	private static final long serialVersionUID = 1L;
 
+//	@Id
 	@NotBlank
 	@ApiModelProperty(value = "tb_3444441234 ,虚拟表的id")
 	@Column(name = "tb_id", nullable = false, length = 40, columnDefinition = "char(40)")

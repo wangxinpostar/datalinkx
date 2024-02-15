@@ -67,9 +67,9 @@ public class RequestLogFilter implements Filter {
     }
     
     private void afterRequestLog(HttpServletRequest request, HttpServletResponse response, String realIp, long elasTime) {
-        int normalStatus = 200;
+        CustomResponseWrapper wrappedResponse = new CustomResponseWrapper(response);
         log.info("uri={}||http_method={}||real_ip={}||request_time={}||status={}||elapse={}", request.getRequestURI(), request.getMethod(),
-                realIp, request.getAttribute("reqStartTime"), response.getStatus() == normalStatus ? 0 : 1, elasTime);
+                realIp, request.getAttribute("reqStartTime"), wrappedResponse.getStatus(), elasTime);
     }
     
     @Override

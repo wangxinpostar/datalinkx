@@ -2,38 +2,37 @@ package com.datalinkx.dataserver.bean.domain;
 
 import java.sql.Timestamp;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-import lombok.experimental.FieldNameConstants;
-import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
 @ApiModel(description = "流转任务执行记录")
 
+@Entity
+@DynamicUpdate
+@DynamicInsert
+@EqualsAndHashCode(callSuper = true)
 @Data
-@FieldNameConstants
-@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(callSuper = true)
-@Entity
+@Builder
 @Table(name = "JOB_LOG")
-public class JobLogBean {
+public class JobLogBean extends StandardDomainBean {
 	private static final long serialVersionUID = 1L;
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+
+//	@Id
 	@Column(name = "id", nullable = false, columnDefinition = "int(11) unsigned")
 	private Long id;
 	@NotBlank

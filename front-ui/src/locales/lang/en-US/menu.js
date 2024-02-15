@@ -8,6 +8,7 @@ export default {
     'menu.transferTask': 'TransferTask',
     'menu.tasklist': 'TaskList',
     'menu.tasklistlog': 'TaskExecutionLog',
+    'menu.taskrelationlist': 'TaskRelationList',
     // 'menu.dashboard': 'Dashboard',
     // 'menu.dashboard.analysis': 'Analysis',
     // 'menu.dashboard.monitor': 'Monitor',

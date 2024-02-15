@@ -63,7 +63,13 @@ export default {
           title: 'job_id',
           width: '10%',
           dataIndex: 'job_id'
-        }, {
+        },
+        {
+          title: 'job_name',
+          width: '10%',
+          dataIndex: 'job_name'
+        },
+        {
           title: '来源表',
           width: '10%',
           dataIndex: 'from_tb_name'
@@ -180,6 +186,7 @@ export default {
           this.$message.error(res.errstr)
         }
       }).finally(() => {
+        this.createEventSource()
         this.loading = false
       })
     },

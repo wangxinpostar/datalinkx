@@ -36,6 +36,9 @@ public class JobForm {
 	@Data
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class JobCreateForm {
+		@ApiModelProperty("任务名称")
+		@JsonProperty("job_name")
+		private String jobName;
 		@ApiModelProperty(value = "数据源id")
 		@JsonProperty("from_ds_id")
 		private String fromDsId;
@@ -108,6 +111,16 @@ public class JobForm {
 	@EqualsAndHashCode(callSuper = true)
 	@Data
 	public static class JobLogPageForm extends JobPageForm {
+		@JsonProperty("job_id")
 		private String jobId;
+	}
+
+	@Data
+	public static class JobRelationForm {
+		@JsonProperty("job_id")
+		private String jobId;
+		@JsonProperty("sub_job_id")
+		private String subJobId;
+		private Integer priority;
 	}
 }

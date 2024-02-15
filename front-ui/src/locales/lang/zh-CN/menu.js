@@ -8,7 +8,10 @@ export default {
     'menu.transferTask': '流转任务',
     'menu.tasklist': '任务列表',
     'menu.tasklistlog': '任务执行日志',
-    // 'menu.dashboard': '仪表盘',
+    'menu.taskrelationlist': '任务级联配置',
+    'menu.taskrelationmap': '任务血缘',
+
+  // 'menu.dashboard': '仪表盘',
     // 'menu.dashboard.analysis': '分析页',
     // 'menu.dashboard.monitor': '监控页',
     // 'menu.dashboard.workplace': '工作台',

@@ -44,7 +44,7 @@ import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
-public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, FlinkActionParam> {
+public class DataTransferAction extends AbstractDataTransferAction<DataTransJobDetail, FlinkActionParam> {
     public static ThreadLocal<Long> startTime = new ThreadLocal<>();
     public static ThreadLocal<Map<String, JobExecCountDto>> countRes = new ThreadLocal<>();
     public static ThreadLocal<Thread> checkThread = new ThreadLocal<>();
@@ -60,6 +60,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, FlinkAc
     @Autowired
     private DatalinkXServerClient datalinkXServerClient;
 
+    @Autowired
+    private DsProperties dsProperties;
 
     @Resource(name = "messageHubServiceImpl")
     MessageHubService messageHubService;
@@ -88,7 +90,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, FlinkAc
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
         log.info(String.format("jobid: %s, end to sync", info.getJobId()));
 
-        Thread thread = FlinkAction.checkThread.get();
+        Thread thread = DataTransferAction.checkThread.get();
         if (null != thread && thread.isAlive()) {
             thread.interrupt();
         }
@@ -108,6 +110,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, FlinkAc
                 .filterCount(jobExecCountDto.getFilterCount())
                 .errmsg(errmsg)
                 .build());
+        // 级联触发子任务
+        datalinkXServerClient.cascadeJob(info.getJobId());
     }
 
     @Override

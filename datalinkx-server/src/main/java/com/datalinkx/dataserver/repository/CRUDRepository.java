@@ -3,10 +3,10 @@ package com.datalinkx.dataserver.repository;
 import java.util.Optional;
 
 import org.springframework.data.repository.NoRepositoryBean;
-import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.PagingAndSortingRepository;
 
 @NoRepositoryBean
-public interface CRUDRepository<T, ID> extends Repository<T, ID> {
+public interface CRUDRepository<T, ID> extends PagingAndSortingRepository<T, ID> {
     <S extends T> S save(S var1);
 
     <S extends T> Iterable<S> saveAll(Iterable<S> var1);

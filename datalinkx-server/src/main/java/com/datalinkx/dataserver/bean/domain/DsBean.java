@@ -1,32 +1,29 @@
 package com.datalinkx.dataserver.bean.domain;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
 
-import io.swagger.annotations.ApiModel;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-import lombok.experimental.FieldNameConstants;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
-@ApiModel(description = "数据源")
+
+@Entity
+@DynamicUpdate
+@DynamicInsert
+@EqualsAndHashCode(callSuper = true)
 @Data
-@FieldNameConstants
-@SuperBuilder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(callSuper = true)
-@Entity
-@DynamicInsert
-@DynamicUpdate
 @Table(name = "DS")
-public class DsBean extends BaseDomainBean {
+public class DsBean extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;
+
+//	@Id
 	@Column(name = "ds_id", nullable = true, length = 35, columnDefinition = "char(35)")
 	private String dsId;
 	@Column(name = "`name`", nullable = true, length = 64, columnDefinition = "varchar(64)")

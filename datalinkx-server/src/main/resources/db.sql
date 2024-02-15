@@ -41,6 +41,18 @@ CREATE TABLE `JOB` (
                        KEY `job_id` (`job_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='流转任务配置信息';
 
+CREATE TABLE `JOB_RELATION` (
+                                `id` int unsigned NOT NULL AUTO_INCREMENT,
+                                `relation_id` char(40) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '依赖关系id',
+                                `job_id` char(40) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '流转任务id',
+                                `parent_id` char(40) NOT NULL DEFAULT '' COMMENT '流转任务父id',
+                                `priority` int COMMENT '同级任务优先级，越高优先级越高',
+                                `is_del` int NOT NULL DEFAULT '0',
+                                `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                `utime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                PRIMARY KEY (`id`) USING BTREE,
+                                KEY `job_id` (`job_id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='流转任务级联配置表';
 
 CREATE TABLE `DS_TB` (
                                 `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -82,3 +94,6 @@ CREATE TABLE `MESSAGEHUB_TOPIC` (
     ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='消息队列白名单';
 
 INSERT INTO `MESSAGEHUB_TOPIC` (`topic`, `fields`, `info_type`, `desc`) VALUES ('JOB_PROGRESS', '', 'REDIS_STREAM', '任务状态刷新');
+
+
+alter table JOB ADD COLUMN  `name` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL

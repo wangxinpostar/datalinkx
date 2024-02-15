@@ -3,18 +3,22 @@
     <div class="table-page-search-wrapper">
       <a-form layout="inline">
         <a-row :gutter="48">
-          <a-col :md="8" :sm="24">
+          <a-col :md="8" :sm="8">
             <a-form-item label="任务id">
               <a-input v-model="queryParam.jobId" placeholder="任务id"/>
             </a-form-item>
           </a-col>
-          <a-col :md="8" :sm="24">
+          <a-col :md="8" :sm="8">
             <a-button @click="() => {this.queryData()}" type="primary">查询</a-button>
             <a-button @click="() => queryParam = {}" style="margin-left: 8px">重置</a-button>
+          </a-col>
+          <a-col :md="8" :sm="32" style="text-align: right;">
+            <a-button @click="$refs.JobRelationSave.add()" icon="plus" type="primary">新建</a-button>
           </a-col>
         </a-row>
       </a-form>
     </div>
+
     <a-table
       :columns="columns"
       :dataSource="tableData"
@@ -22,71 +26,59 @@
       :rowKey="record => record.id"
       @change="handleTableChange"
     >
-    <span slot="status" slot-scope="text, record" style="display: flex;align-items: center;">
-      <div :style=getTableCss(record.status)></div>
-      <span>{{ record.status ? '失败' : '成功'}}</span>
-    </span>
     </a-table>
+    <job-relation-save
+      @ok="handleOk"
+      ref="JobRelationSave"
+    />
   </a-card>
 </template>
 
 <script>
-import { pageQuery } from '@/api/job/joblog'
-// 0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:QUEUING
+import { pageQuery, delObj } from '@/api/job/jobrelation'
+import JobRelationSave from '../jobrelation/JobRelationSave.vue'
 export default {
-  name: 'ContainerBottom',
+  name: 'JobRelationList',
   components: {
-    // JobSaveOrUpdate
+    JobRelationSave
   },
   data () {
     return {
       loading: false,
       columns: [
         {
-          title: 'job_id',
+          title: 'relation_id',
           width: '10%',
-          dataIndex: 'job_id'
+          dataIndex: 'relation_id'
         },
-        // {
-        //   title: 'job_name',
-        //   width: '10%',
-        //   dataIndex: 'job_name'
-        // },
         {
-          title: '执行日志',
+          title: '任务名称',
           width: '10%',
-          dataIndex: 'error_msg',
-          ellipsis: true,
-          render: value =>
-            <Tooltip title={value}>
-              <div className="ellipsis" style={{ float: 'left', maxWidth: '100%' }}>
-                {value && value.substring(0, 10)}
+          dataIndex: 'job_name'
+        },
+        {
+          title: '级联子任务名称',
+          width: '10%',
+          dataIndex: 'sub_job_name'
+        },
+        {
+          title: '任务权重',
+          width: '10%',
+          dataIndex: 'priority'
+        },
+        {
+          title: '操作',
+          width: '15%',
+          customRender: (record) => {
+            return (
+              <div>
+                <a-popconfirm title="是否删除" onConfirm={() => this.delete(record)} okText="是" cancelText="否">
+                  <a-icon slot="icon" type="question-circle-o" style="color: red" />
+                  <a href="javascript:;" style="color: red">删除</a>
+                </a-popconfirm>
               </div>
-            </Tooltip>
-        },
-        {
-          title: '开始时间',
-          width: '10%',
-          dataIndex: 'start_time',
-          sorter: true
-        },
-        {
-          title: '执行耗时s',
-          width: '10%',
-          dataIndex: 'cost_time',
-          sorter: true
-        },
-        {
-          title: '任务状态',
-          width: '10%',
-          dataIndex: 'status',
-          scopedSlots: { customRender: 'status' }
-        },
-        {
-          title: '新增条数',
-          width: '10%',
-          dataIndex: 'append_count',
-          sorter: true
+            )
+          }
         }
       ],
       tableData: [],
@@ -120,8 +112,17 @@ export default {
         this.queryParam.jobId = ''
       })
     },
-    getTableCss (status) {
-      return `width:12px;height:12px;border-radius:50%;margin-right:4px;background-color: ${status ? '#f00' : '#0f0'};`
+    delete (record) {
+      delObj(record.relation_id).then(res => {
+        if (res.status === '0') {
+          this.$message.info('删除成功')
+          this.init()
+        } else {
+          this.$message.error(res.errstr)
+        }
+      }).finally(() => {
+        this.loading = false
+      })
     },
     handleTableChange (pagination, filters, sorter) {
       this.pagination = pagination

@@ -14,6 +14,6 @@ import lombok.experimental.FieldNameConstants;
 @Builder
 @FieldNameConstants
 @ToString(callSuper = true)
-public class DataTransJobParam {
+public class DataTransferJobParam {
     String jobId;
 }

@@ -1,34 +1,33 @@
 package com.datalinkx.dataserver.bean.domain;
 
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 
 import io.swagger.annotations.ApiModel;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-import lombok.experimental.FieldNameConstants;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 @ApiModel(description = "流转任务")
+@Entity
+@DynamicUpdate
+@DynamicInsert
+@EqualsAndHashCode(callSuper = true)
 @Data
-@FieldNameConstants
-@SuperBuilder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(callSuper = true)
-@Entity
-@DynamicInsert
-@DynamicUpdate
 @Table(name = "JOB")
-public class JobBean extends BaseDomainBean {
+public class JobBean extends BaseEntity {
 	private static final long serialVersionUID = 1L;
+	@NotBlank
+	@Column(name = "name", nullable = false, length = 64, columnDefinition = "char(64)")
+	private String name;
 	@NotBlank
 	@Column(name = "job_id", nullable = false, length = 40, columnDefinition = "char(40)")
 	private String jobId;

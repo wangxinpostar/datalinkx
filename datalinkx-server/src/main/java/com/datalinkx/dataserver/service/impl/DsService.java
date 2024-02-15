@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.blazebit.persistence.PagedList;
 import com.datalinkx.common.constants.MetaConstants;
 import com.datalinkx.common.exception.DatalinkXServerException;
 import com.datalinkx.common.result.StatusCode;
@@ -19,6 +20,7 @@ import com.datalinkx.common.utils.ConnectIdUtils;
 import com.datalinkx.common.utils.JsonUtils;
 import com.datalinkx.dataserver.bean.domain.DsBean;
 import com.datalinkx.dataserver.bean.domain.DsTbBean;
+import com.datalinkx.dataserver.bean.domain.PageDomain;
 import com.datalinkx.dataserver.bean.vo.PageVo;
 import com.datalinkx.dataserver.controller.form.DsForm;
 import com.datalinkx.dataserver.repository.DsRepository;
@@ -35,8 +37,6 @@ import com.datalinkx.driver.dsdriver.redisDriver.RedisSetupInfo;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -140,6 +140,7 @@ public class DsService {
 		}
 	}
 
+	// 根据数据源配置生成唯一串
 	public String getConnectId(DsBean dsBean) {
 		String toType = Optional.ofNullable(MetaConstants.DsType.TYPE_TO_DB_NAME_MAP.get(dsBean.getType())).orElse("").toLowerCase();
 		switch (toType) {
@@ -190,14 +191,18 @@ public class DsService {
 
 
     public PageVo<List<DsBean>> dsPage(DsForm.DataSourcePageForm dataSourcePageForm) {
-		PageRequest pageRequest = PageRequest.of(dataSourcePageForm.getPageNo() - 1, dataSourcePageForm.getPageSize());
-		Page<DsBean> dsBeans = dsRepository.pageQuery(pageRequest, dataSourcePageForm.getName(), dataSourcePageForm.getType());
+
+		PageDomain pageDomain = new PageDomain();
+		pageDomain.setPageNum(dataSourcePageForm.getPageNo());
+		pageDomain.setPageSize(dataSourcePageForm.getPageSize());
+
+		PagedList<DsBean> dsBeans = dsRepository.pageQuery(pageDomain, dataSourcePageForm.getName(), dataSourcePageForm.getType());
 		PageVo<List<DsBean>> result = new PageVo<>();
 		result.setPageNo(dataSourcePageForm.getPageNo());
 		result.setPageSize(dataSourcePageForm.getPageSize());
-		result.setData(dsBeans.getContent());
+		result.setData(dsBeans);
 		result.setTotalPage(dsBeans.getTotalPages());
-		result.setTotal(dsBeans.getTotalElements());
+		result.setTotal(dsBeans.getTotalSize());
 		return result;
 	}
 
@@ -208,6 +213,7 @@ public class DsService {
 	public DsBean info(String dsId) {
 		return dsRepository.findByDsId(dsId)
 				.map(dsBean -> {
+					// 1、密码非明文存储，使用双base64加密
 					if (!ObjectUtils.isEmpty(dsBean.getPassword())) {
 						String pwd = null;
 						try {

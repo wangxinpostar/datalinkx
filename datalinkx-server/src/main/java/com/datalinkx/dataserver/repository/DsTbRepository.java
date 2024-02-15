@@ -3,14 +3,11 @@ package com.datalinkx.dataserver.repository;
 import java.util.List;
 import java.util.Optional;
 
-import javax.transaction.Transactional;
-
 import com.datalinkx.dataserver.bean.domain.DsTbBean;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.NoRepositoryBean;
 
 
-@Transactional
-@Repository
+@NoRepositoryBean
 public interface DsTbRepository extends CRUDRepository<DsTbBean, String> {
 
 	Optional<DsTbBean> findByTbId(String tbId);

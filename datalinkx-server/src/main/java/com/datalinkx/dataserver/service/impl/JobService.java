@@ -9,12 +9,12 @@ import static com.datalinkx.common.utils.JsonUtils.toJson;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
-
+import com.blazebit.persistence.PagedList;
 import com.datalinkx.common.constants.MessageHubConstants;
 import com.datalinkx.common.constants.MetaConstants;
 import com.datalinkx.common.exception.DatalinkXServerException;
@@ -24,6 +24,8 @@ import com.datalinkx.dataserver.bean.domain.DsBean;
 import com.datalinkx.dataserver.bean.domain.DsTbBean;
 import com.datalinkx.dataserver.bean.domain.JobBean;
 import com.datalinkx.dataserver.bean.domain.JobLogBean;
+import com.datalinkx.dataserver.bean.domain.JobRelationBean;
+import com.datalinkx.dataserver.bean.domain.PageDomain;
 import com.datalinkx.dataserver.bean.dto.JobDto;
 import com.datalinkx.dataserver.bean.vo.JobVo;
 import com.datalinkx.dataserver.bean.vo.PageVo;
@@ -34,6 +36,7 @@ import com.datalinkx.dataserver.controller.form.JobStateForm;
 import com.datalinkx.dataserver.repository.DsRepository;
 import com.datalinkx.dataserver.repository.DsTbRepository;
 import com.datalinkx.dataserver.repository.JobLogRepository;
+import com.datalinkx.dataserver.repository.JobRelationRepository;
 import com.datalinkx.dataserver.repository.JobRepository;
 import com.datalinkx.dataserver.service.DtsJobService;
 import com.datalinkx.driver.dsdriver.DsDriverFactory;
@@ -42,12 +45,11 @@ import com.datalinkx.driver.dsdriver.base.model.TableField;
 import com.datalinkx.driver.model.DataTransJobDetail;
 import com.datalinkx.messagehub.bean.form.ProducerAdapterForm;
 import com.datalinkx.messagehub.service.MessageHubService;
+import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +65,10 @@ public class JobService implements DtsJobService {
 	private static final int SUCCESS = 2;
 
 	@Autowired
-	private JobRepository jobRepository;
+	JobRepository jobRepository;
+
+	@Autowired
+	JobRelationRepository jobRelationRepository;
 
 	@Autowired
 	DsService dsService;
@@ -99,6 +104,7 @@ public class JobService implements DtsJobService {
 		jobBean.setStatus(MetaConstants.JobStatus.JOB_STATUS_CREATE);
 		jobBean.setCrontab(form.getSchedulerConf());
 		jobBean.setSyncMode(JsonUtils.toJson(form.getSyncMode()));
+		jobBean.setName(form.getJobName());
 
 		// 创建 xxljob
 		String xxlJobId = jobClientApi.add(jobId, form.getSchedulerConf(), DataTransJobParam.builder().jobId(jobId).build());
@@ -119,6 +125,7 @@ public class JobService implements DtsJobService {
 		jobBean.setToTbId(getXtbId(form.getToTbName(), form.getFromDsId()));
 		jobBean.setCrontab(form.getSchedulerConf());
 		jobBean.setSyncMode(JsonUtils.toJson(form.getSyncMode()));
+		jobBean.setName(form.getJobName());
 		jobRepository.save(jobBean);
 		return form.getJobId();
 	}
@@ -181,19 +188,21 @@ public class JobService implements DtsJobService {
 				.orElseThrow(
 						() -> new DatalinkXServerException(StatusCode.DS_NOT_EXISTS, "from ds not exist")
 				);
-
+		// 1、流转任务来源表字段列表
 		List<DataTransJobDetail.Column> fromCols = jobConf.stream()
 				.filter(x -> StringUtils.isNotEmpty(x.getSourceField()) && StringUtils.isNotEmpty(x.getTargetField()))
 				.map(x -> DataTransJobDetail.Column.builder()
 						.name(x.getSourceField())
 						.build())
 				.collect(Collectors.toList());
-
-		// 处理增量条件
+		// 2、检查数据表是否存在
 		DsTbBean fromTbBean = dsTbRepository.findByTbId(jobBean.getFromTbId())
 				.orElseThrow(() -> new DatalinkXServerException(StatusCode.XTB_NOT_EXISTS, "xtb not found"));
 
+		// 3、获取数据源对应driver驱动
 		IDsReader dsReader = DsDriverFactory.getDsReader(dsService.getConnectId(fromDs));
+
+		// 4、获取对应增量条件
 		Map<String, String> typeMappings = dsReader.getFields(fromDs.getDatabase(), fromDs.getSchema(), fromTbBean.getName())
 				.stream().collect(Collectors.toMap(TableField::getName, TableField::getRawType));
 		JobForm.SyncModeForm syncModeForm = JsonUtils.toObject(jobBean.getSyncMode(), JobForm.SyncModeForm.class);
@@ -270,7 +279,7 @@ public class JobService implements DtsJobService {
 				.collect(Collectors.toList());
 
 		DsTbBean tbBean = dsTbRepository.findByTbId(jobBean.getToTbId())
-				.orElseThrow(() -> new DatalinkXServerException(StatusCode.TB_NOT_EXISTS, "xtable not exist"));
+				.orElseThrow(() -> new DatalinkXServerException(StatusCode.TB_NOT_EXISTS, "流转任务目标表不存在"));
 
 		return DataTransJobDetail.Writer.builder()
 				.schema(toDs.getDatabase()).connectId(dsService.getConnectId(toDs))
@@ -286,6 +295,7 @@ public class JobService implements DtsJobService {
 				.orElseThrow(() -> new DatalinkXServerException(StatusCode.JOB_NOT_EXISTS, "job not exist"));
 		int status = jobStateForm.getJobStatus();
 
+		// 1、实时推送流转进度
 		ProducerAdapterForm producerAdapterForm = new ProducerAdapterForm();
 		producerAdapterForm.setType(MessageHubConstants.REDIS_STREAM_TYPE);
 		producerAdapterForm.setTopic(MessageHubConstants.JOB_PROGRESS_TOPIC);
@@ -300,6 +310,7 @@ public class JobService implements DtsJobService {
 		);
 		messageHubService.produce(producerAdapterForm);
 
+		// 2、存储流转任务状态
 		JobDto.DataCountDto countVo = JobDto.DataCountDto.builder()
 				.allCount(jobStateForm.getAllCount())
 				.appendCount(jobStateForm.getAppendCount())
@@ -311,6 +322,7 @@ public class JobService implements DtsJobService {
 				: jobStateForm.getErrmsg() == null ? "" : jobStateForm.getErrmsg());
 		jobRepository.save(jobBean);
 
+		// 3、保存流转任务执行日志
 		if (!ObjectUtils.isEmpty(jobStateForm.getErrmsg())) {
 			jobLogRepository.save(JobLogBean.builder()
 					.jobId(jobStateForm.getJobId())
@@ -348,16 +360,21 @@ public class JobService implements DtsJobService {
 		jobRepository.save(jobBean);
 	}
 
+	@Override
+	public String cascadeJob(String jobId) {
+		jobRelationRepository.findSubJob(jobId).stream()
+				.sorted(Comparator.comparingInt(JobRelationBean::getPriority))
+				.forEach(jobRelationBean -> this.jobExec(jobRelationBean.getSubJobId()));
+		return jobId;
+	}
 
-	/**
-	 *  任务创建代理
-	 *  解决异步调用事务不同步
-	 */
+
+	// 创建任务后再手动调用xxl-job触发函数，解决异步调用mysql事务未提交，xxl-job任务已出发问题
 	public String jobCreateProxy(JobForm.JobCreateForm form) {
 		String jobId = this.jobCreate(form);
-		// 创建完默认执行一次
-		// 启动 xxljob
+		// 1、创建后开启任务
 		jobClientApi.start(jobId);
+		// 2、默认触发一次任务
 		jobClientApi.trigger(jobId, DataTransJobParam.builder().jobId(jobId).build());
 		return jobId;
 	}
@@ -374,7 +391,7 @@ public class JobService implements DtsJobService {
 
 		jobBean.setStatus(JOB_STATUS_SYNC);
 
-		// if xxl-job not exist, then create it.
+		// 如果xxl-job未创建任务，新建一个
 		if (!jobClientApi.isXxljobExist(jobId)) {
 			String xxlJobId = jobClientApi.add(jobId, jobBean.getCrontab(), DataTransJobParam.builder().jobId(jobId).build());
 			jobBean.setXxlId(xxlJobId);
@@ -390,10 +407,10 @@ public class JobService implements DtsJobService {
 		JobBean jobBean = jobRepository.findByJobId(jobId)
 				.orElseThrow(() -> new DatalinkXServerException(StatusCode.JOB_NOT_EXISTS, "job not exist"));
 
-		List<String> tbIds = new ArrayList<String>() {{
-			add(jobBean.getFromTbId());
-			add(jobBean.getToTbId());
-		}};
+		List<String> tbIds = new ArrayList<>() {{
+            add(jobBean.getFromTbId());
+            add(jobBean.getToTbId());
+        }};
 
 		Map<String, String> dsTbNameMap = dsTbRepository.findAllByTbIdIn(tbIds)
 				.stream()
@@ -402,6 +419,7 @@ public class JobService implements DtsJobService {
 		JobVo.JobInfoVo jobInfoVo = JobVo.JobInfoVo
 				.builder()
 				.jobId(jobBean.getJobId())
+				.jobName(jobBean.getName())
 				.fromDsId(jobBean.getReaderDsId())
 				.toDsId(jobBean.getWriterDsId())
 				.fromTbName(dsTbNameMap.get(jobBean.getFromTbId()))
@@ -416,13 +434,15 @@ public class JobService implements DtsJobService {
 	}
 
 	public PageVo<List<JobVo.JobPageVo>> page(JobForm.JobPageForm form) {
-		PageRequest pageRequest = PageRequest.of(form.getPageNo() - 1, form.getPageSize());
-		Page<JobBean> jobBeans = jobRepository.pageQuery(pageRequest);
+		PageDomain pageDomain = new PageDomain();
+		pageDomain.setPageNum(form.getPageNo());
+		pageDomain.setPageSize(form.getPageSize());
+		PagedList<JobBean> jobBeans = jobRepository.pageQuery(pageDomain);
 
 
 		List<String> tbIds = new ArrayList<>();
 		List<String> dsId = new ArrayList<>();
-		jobBeans.getContent().forEach(job -> {
+		jobBeans.forEach(job -> {
 			tbIds.add(job.getFromTbId());
 			tbIds.add(job.getToTbId());
 			dsId.add(job.getWriterDsId());
@@ -437,11 +457,12 @@ public class JobService implements DtsJobService {
 				.stream()
 				.collect(Collectors.toMap(DsBean::getDsId, DsBean::getName));
 
-		List<JobVo.JobPageVo> pageVoList = jobBeans.getContent().stream().map(jobBean -> {
+		List<JobVo.JobPageVo> pageVoList = jobBeans.stream().map(jobBean -> {
 			JobDto.DataCountDto dataCountDto = JsonUtils.toObject(jobBean.getCount(), JobDto.DataCountDto.class);
 			return JobVo.JobPageVo
 					.builder()
 					.jobId(jobBean.getJobId())
+					.jobName(jobBean.getName())
 					.progress(String.format("%s/%s", dataCountDto.getAppendCount(), dataCountDto.getFilterCount()))
 					.fromTbName(dsNameMap.get(jobBean.getReaderDsId()) + "." + dsTbNameMap.get(jobBean.getFromTbId()))
 					.toTbName(dsNameMap.get(jobBean.getWriterDsId()) + "."  + dsTbNameMap.get(jobBean.getToTbId()))
@@ -454,7 +475,7 @@ public class JobService implements DtsJobService {
 		result.setPageSize(form.getPageSize());
 		result.setData(pageVoList);
 		result.setTotalPage(jobBeans.getTotalPages());
-		result.setTotal(jobBeans.getTotalElements());
+		result.setTotal(jobBeans.getTotalSize());
 		return result;
 	}
 
@@ -465,10 +486,13 @@ public class JobService implements DtsJobService {
 	}
 
 	public PageVo<List<JobVo.JobLogPageVo>> logPage(JobForm.JobLogPageForm jobLogPageForm) {
-		PageRequest pageRequest = PageRequest.of(jobLogPageForm.getPageNo() - 1, jobLogPageForm.getPageSize());
-		Page<JobLogBean> jobLogBeans = jobLogRepository.pageQuery(pageRequest, jobLogPageForm.getJobId());
+		PageDomain pageDomain = new PageDomain();
+		pageDomain.setPageNum(jobLogPageForm.getPageNo());
+		pageDomain.setPageSize(jobLogPageForm.getPageSize());
 
-		List<JobVo.JobLogPageVo> logPageVos = jobLogBeans.getContent().stream().map(jobLogBean -> {
+		PagedList<JobLogBean> jobLogBeans = jobLogRepository.pageQuery(pageDomain, jobLogPageForm.getJobId());
+
+		List<JobVo.JobLogPageVo> logPageVos = jobLogBeans.stream().map(jobLogBean -> {
 			JobVo.JobLogPageVo logPageVo = new JobVo.JobLogPageVo();
 			logPageVo.setJobId(jobLogBean.getJobId());
 			logPageVo.setStatus(jobLogBean.getStatus());
@@ -488,7 +512,7 @@ public class JobService implements DtsJobService {
 		result.setPageSize(jobLogPageForm.getPageSize());
 		result.setData(logPageVos);
 		result.setTotalPage(jobLogBeans.getTotalPages());
-		result.setTotal(jobLogBeans.getTotalElements());
+		result.setTotal(jobLogBeans.getTotalSize());
 		return result;
 	}
 
@@ -496,4 +520,8 @@ public class JobService implements DtsJobService {
 		jobRepository.updateJobStatus(jobId, JOB_STATUS_STOP);
 		jobClientApi.stop(jobId);
 	}
+
+    public List<JobVo.JobId2NameVo> list() {
+		return jobRepository.findAll().stream().map(v -> JobVo.JobId2NameVo.builder().JobId(v.getJobId()).jobName(v.getName()).build()).collect(Collectors.toList());
+    }
 }
