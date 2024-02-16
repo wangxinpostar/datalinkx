@@ -2,18 +2,15 @@ package com.datalinkx.messagehub.config.topic;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.TimerTask;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
 
 import com.datalinkx.common.constants.MessageHubConstants;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.SQLQuery;
-import org.hibernate.transform.Transformers;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -43,13 +40,13 @@ public class TopicReloadTask extends TimerTask {
     @Override
     public void run() {
         try {
-            List<Map<String, Object>> topics = this.getQueryResult(TOPIC_SQL);
+            List<Object[]> topics = this.getQueryResult(TOPIC_SQL);
             if (!ObjectUtils.isEmpty(topics)) {
 
                 List<String> mappingTopics = topics.stream().map(
                         v -> MessageHubConstants.getInnerTopicName(
-                                (String) v.get("info_type"),
-                                (String) v.get("topic")
+                                (String) v[0],
+                                (String) v[1]
                         )
                 ).collect(Collectors.toList());
 
@@ -78,7 +75,6 @@ public class TopicReloadTask extends TimerTask {
 
     private <T> List<T> getQueryResult(String sql) {
         Query dataQuery = this.entityManager.createNativeQuery(sql);
-        dataQuery.unwrap(SQLQuery.class).setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP);
         return dataQuery.getResultList();
     }
 }

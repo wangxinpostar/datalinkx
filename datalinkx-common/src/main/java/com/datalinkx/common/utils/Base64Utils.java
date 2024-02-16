@@ -8,7 +8,6 @@ public final class Base64Utils {
 	private Base64Utils() {
 	}
 	public static String encodeBase64(byte[] src) throws UnsupportedEncodingException {
-
 		return Base64.getEncoder().encodeToString(src);
 	}
 

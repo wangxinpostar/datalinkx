@@ -166,6 +166,7 @@ public class EsDriver implements AbstractDriver<EsSetupInfo, EsReader, EsWriter>
                 .timeout(ES_TIMEOUT).column(param.getReader().getColumns().stream()
                         .map(col -> MetaColumn.builder()
                                 .name(col.getName())
+                                .value(null)
                                 .build()).collect(Collectors.toList()))
                 .build());
 
@@ -247,6 +248,7 @@ public class EsDriver implements AbstractDriver<EsSetupInfo, EsReader, EsWriter>
                 .column(param.getWriter().getColumns().stream().map(col ->
                                 MetaColumn.builder()
                                         .name(col.getName())
+                                        .type(col.getType())
                                         .build()
                         )
                         .collect(Collectors.toList()))

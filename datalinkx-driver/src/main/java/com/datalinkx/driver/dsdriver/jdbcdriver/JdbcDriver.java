@@ -38,13 +38,13 @@ import com.datalinkx.driver.dsdriver.base.reader.ReaderInfo;
 import com.datalinkx.driver.dsdriver.base.writer.WriterInfo;
 import com.datalinkx.driver.model.DataTransJobDetail;
 import com.google.common.collect.Lists;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class JdbcDriver<T extends JdbcSetupInfo, P extends JdbcReader, Q extends JdbcWriter> extends SqlGenerator implements AbstractDriver<T, P, Q>, IDsReader, IDsWriter {
-        private static int defaultFetchSize = 10000;
+    private static int defaultFetchSize = 10000;
     private static int defaultQueryTimeOut = 100000;
     private static String allowNull = "1";
 
@@ -68,6 +68,15 @@ public class JdbcDriver<T extends JdbcSetupInfo, P extends JdbcReader, Q extends
         this.jdbcSetupInfo = (T) JsonUtils.toObject(ConnectIdUtils.decodeConnectId(connectId), clazz);
         jdbcSetupInfo.setPwd(rebuildPassword(jdbcSetupInfo.getPwd()));
         this.connectId = connectId;
+    }
+
+    protected void rebuildPassword(JdbcSetupInfo jdbcSetupInfo) {
+        try {
+            String pwd = new String(Base64Utils.decodeBase64(jdbcSetupInfo.getPwd()));
+            jdbcSetupInfo.setPwd(pwd);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     protected String jdbcUrl() {
@@ -235,8 +244,9 @@ public class JdbcDriver<T extends JdbcSetupInfo, P extends JdbcReader, Q extends
         }).collect(Collectors.toList());
     }
 
+    @SneakyThrows
     public String refEncode(List<String> refs) {
-        return Base64.encode(JsonUtils.toJson(refs).getBytes());
+        return Base64Utils.encodeBase64(JsonUtils.toJson(refs).getBytes());
     }
 
 
@@ -464,16 +474,15 @@ public class JdbcDriver<T extends JdbcSetupInfo, P extends JdbcReader, Q extends
                                 )
                                 :
                                 unit.getReader().getColumns().stream().map(col ->
-                                MetaColumn.builder()
-                                        .name(col.getName())
-                                        .build())
-                        .collect(Collectors.toList()))
+                                                MetaColumn.builder()
+                                                        .name(col.getName())
+                                                        .build())
+                                        .collect(Collectors.toList()))
                 .where(whereSql)
                 .build());
 
         return readerInfo;
     }
-
     public Object getWriterInfo(FlinkActionParam unit) {
         WriterInfo<Q> jdbcWriterInfo = new WriterInfo<>();
 

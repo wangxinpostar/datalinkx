@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
 public final class RefUtils {
@@ -23,7 +23,8 @@ public final class RefUtils {
         return decode(ref).stream().filter(StringUtils::isNotEmpty).collect(Collectors.joining("."));
     }
 
+    @SneakyThrows
     public static String encode(List<String> infos) {
-        return Base64.encode(JsonUtils.toJson(infos).getBytes());
+        return Base64Utils.encodeBase64(JsonUtils.toJson(infos).getBytes());
     }
 }

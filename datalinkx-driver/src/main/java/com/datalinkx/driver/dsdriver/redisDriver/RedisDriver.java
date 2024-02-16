@@ -64,14 +64,14 @@ public class RedisDriver implements AbstractDriver<RedisSetupInfo, AbstractReade
         WriterInfo<RedisWriter> writerInfo = new WriterInfo<>();
         writerInfo.setName("rediswriter");
         writerInfo.setParameter(RedisWriter.builder()
-                        .customKey(key)
-                        .password(redisSetupInfo.getPwd())
-                        .hostPort(redisSetupInfo.getHost() + ":" + redisSetupInfo.getPort())
-                        .mode(mode)
-                        .type(type)
-                        .database(redisSetupInfo.getDatabase())
-                        // 只是为了补充JobGraph信息，无异议
-                        .keyIndexes(new Integer[] {0, 1})
+                .customKey(key)
+                .password(redisSetupInfo.getPwd())
+                .hostPort(redisSetupInfo.getHost() + ":" + redisSetupInfo.getPort())
+                .mode(mode)
+                .type(type)
+                .database(redisSetupInfo.getDatabase())
+                // 只是为了补充JobGraph信息，无异议
+                .keyIndexes(new Integer[] {0, 1})
                 .build());
         return writerInfo;
     }

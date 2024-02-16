@@ -21,10 +21,11 @@ public class TopicDaemonWarden implements InitializingBean {
 
 
     @Bean
-    public void topicReload() {
+    public Timer topicReload() {
         Timer timer = new Timer();
         log.info("topic daemon warden reload start");
         timer.schedule(topicReloadTask, 60000, 60000);
+        return timer;
     }
 
     @Override
