@@ -4,6 +4,7 @@ import static com.datalinkx.common.utils.IdUtils.genKey;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -17,12 +18,22 @@ import com.datalinkx.common.result.StatusCode;
 import com.datalinkx.dataserver.bean.domain.JobBean;
 import com.datalinkx.dataserver.bean.domain.JobRelationBean;
 import com.datalinkx.dataserver.bean.domain.PageDomain;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.datalinkx.common.exception.DatalinkXServerException;
+import com.datalinkx.common.result.StatusCode;
+import com.datalinkx.common.utils.ObjectUtils;
+import com.datalinkx.dataserver.bean.domain.JobBean;
+import com.datalinkx.dataserver.bean.domain.JobRelationBean;
 import com.datalinkx.dataserver.bean.vo.JobVo;
 import com.datalinkx.dataserver.bean.vo.PageVo;
 import com.datalinkx.dataserver.controller.form.JobForm;
 import com.datalinkx.dataserver.repository.JobRelationRepository;
 import com.datalinkx.dataserver.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -54,7 +65,7 @@ public class JobRelationService {
                 .subJobName(jobId2Name.get(jobRelationBean.getSubJobId()))
                 .priority(jobRelationBean.getPriority())
                 .build()
-        ).toList();
+        ).collect(Collectors.toList());
 
         PageVo<List<JobVo.JobRelationVo>> result = new PageVo<>();
         result.setPageNo(jobLogPageForm.getPageNo());
@@ -148,7 +159,7 @@ public class JobRelationService {
             }
         }
 
-        return visitedCount != taskGraph.size();
+        return visitedCount != inDegree.size();
     }
 
     // 任务血缘信息
@@ -156,11 +167,11 @@ public class JobRelationService {
         JobVo.JobRelationBloodVo jobRelationBloodVo = new JobVo.JobRelationBloodVo();
 
 
-        List<JobVo.JobRelationBloodVoEdge> allEdges = new ArrayList<>();
+        Set<JobVo.JobRelationBloodVoEdge> allEdges = new HashSet<>();
         this.fetchSubJobs(jobId, allEdges);
         this.fetchParentJobs(jobId, allEdges);
 
-        jobRelationBloodVo.setEdges(allEdges);
+        jobRelationBloodVo.setEdges(new ArrayList<>(allEdges));
 
         List<String> jobIds = new ArrayList<>();
         allEdges.forEach(job -> {
@@ -169,14 +180,20 @@ public class JobRelationService {
         });
         List<JobVo.JobRelationBloodVoNode> nodes = jobRepository.findByJobIdIn(jobIds)
                 .stream().map(jobBean -> JobVo.JobRelationBloodVoNode.builder().id(jobBean.getJobId()).label(jobBean.getName()).build())
-                .toList();
+                .collect(Collectors.toList());
+
+        if (ObjectUtils.isEmpty(nodes)) {
+            jobRepository.findByJobId(jobId).ifPresent(jobBean -> {
+                nodes.add(JobVo.JobRelationBloodVoNode.builder().id(jobBean.getJobId()).label(jobBean.getName()).build());
+            });
+        }
 
         jobRelationBloodVo.setNodes(nodes);
         return jobRelationBloodVo;
     }
 
     // 递归获取上游任务节点
-    private void fetchParentJobs(String jobId, List<JobVo.JobRelationBloodVoEdge> allEdges) {
+    private void fetchParentJobs(String jobId, Set<JobVo.JobRelationBloodVoEdge> allEdges) {
         List<JobRelationBean> parentJobs = jobRelationRepository.findParentJob(jobId);
         for (JobRelationBean subJob : parentJobs) {
             allEdges.add(JobVo.JobRelationBloodVoEdge.builder().from(subJob.getJobId()).to(subJob.getSubJobId()).build());
@@ -185,7 +202,7 @@ public class JobRelationService {
     }
 
     // 递归获取下游任务节点
-    private void fetchSubJobs(String jobId, List<JobVo.JobRelationBloodVoEdge> allEdges) {
+    private void fetchSubJobs(String jobId, Set<JobVo.JobRelationBloodVoEdge> allEdges) {
         // 下游任务集合
         List<JobRelationBean> subJobs = jobRelationRepository.findSubJob(jobId);
         for (JobRelationBean subJob : subJobs) {

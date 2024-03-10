@@ -55,16 +55,16 @@ CREATE TABLE `JOB_RELATION` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='流转任务级联配置表';
 
 CREATE TABLE `DS_TB` (
-                                `id` int unsigned NOT NULL AUTO_INCREMENT,
-                                `tb_id` char(40) NOT NULL DEFAULT '' COMMENT '导出数据源表',
-                                `ds_id` char(40) DEFAULT NULL COMMENT '数据库id',
-                                `name` varchar(1024) NOT NULL DEFAULT '' COMMENT '表名，不可修改',
-                                `status` tinyint unsigned DEFAULT '0' COMMENT '0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:MIGRATE|5:MIGRATE_ERROR|6:MERGE_ERROR',
-                                `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                `utime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                `is_del` tinyint NOT NULL DEFAULT '0',
-                                PRIMARY KEY (`id`),
-                                KEY `ds` (`ds_id`)
+                         `id` int unsigned NOT NULL AUTO_INCREMENT,
+                         `tb_id` char(40) NOT NULL DEFAULT '' COMMENT '导出数据源表',
+                         `ds_id` char(40) DEFAULT NULL COMMENT '数据库id',
+                         `name` varchar(1024) NOT NULL DEFAULT '' COMMENT '表名，不可修改',
+                         `status` tinyint unsigned DEFAULT '0' COMMENT '0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:MIGRATE|5:MIGRATE_ERROR|6:MERGE_ERROR',
+                         `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                         `utime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                         `is_del` tinyint NOT NULL DEFAULT '0',
+                         PRIMARY KEY (`id`),
+                         KEY `ds` (`ds_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='数据源中数据表';
 
 CREATE TABLE `JOB_LOG` (
@@ -81,17 +81,17 @@ CREATE TABLE `JOB_LOG` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT COMMENT='流转任务日志';
 
 CREATE TABLE `MESSAGEHUB_TOPIC` (
-                                                  `id` int NOT NULL AUTO_INCREMENT COMMENT '自增id',
-                                                  `topic` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '消息主题',
-    `fields` text COLLATE utf8_unicode_ci COMMENT '字段描述',
-    `info_type` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT 'REDIS_QUEUE' COMMENT '消息类型',
-    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `utime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除 0否1是',
-    `desc` text COLLATE utf8_unicode_ci NOT NULL COMMENT 'topic描述',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `topic_type_key` (`topic`,`info_type`,`is_del`)
-    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='消息队列白名单';
+                                    `id` int NOT NULL AUTO_INCREMENT COMMENT '自增id',
+                                    `topic` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '' COMMENT '消息主题',
+                                    `fields` text COLLATE utf8_unicode_ci COMMENT '字段描述',
+                                    `info_type` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT 'REDIS_QUEUE' COMMENT '消息类型',
+                                    `ctime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                    `utime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                    `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除 0否1是',
+                                    `desc` text COLLATE utf8_unicode_ci NOT NULL COMMENT 'topic描述',
+                                    PRIMARY KEY (`id`),
+                                    UNIQUE KEY `topic_type_key` (`topic`,`info_type`,`is_del`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='消息队列白名单';
 
 INSERT INTO `MESSAGEHUB_TOPIC` (`topic`, `fields`, `info_type`, `desc`) VALUES ('JOB_PROGRESS', '', 'REDIS_STREAM', '任务状态刷新');
 

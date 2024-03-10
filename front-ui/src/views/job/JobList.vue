@@ -65,7 +65,7 @@ export default {
           dataIndex: 'job_id'
         },
         {
-          title: 'job_name',
+          title: '任务名称',
           width: '10%',
           dataIndex: 'job_name'
         },

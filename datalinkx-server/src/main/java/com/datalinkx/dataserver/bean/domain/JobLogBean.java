@@ -29,7 +29,7 @@ import org.hibernate.annotations.DynamicUpdate;
 @NoArgsConstructor
 @Builder
 @Table(name = "JOB_LOG")
-public class JobLogBean extends StandardDomainBean {
+public class JobLogBean extends BaseEntity {
 	private static final long serialVersionUID = 1L;
 
 //	@Id

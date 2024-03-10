@@ -45,7 +45,8 @@
 <!--        <module>flinkx-cassandra</module>-->
 
         <module>flinkx-redis</module>
-<!--        <module>flinkx-mongodb</module>-->
+        <module>flinkx-datalinkx-restapi</module>
+        <!--        <module>flinkx-mongodb</module>-->
 
         <!--******实时******-->
 <!--        <module>flinkx-binlog</module>-->

@@ -26,6 +26,7 @@ import com.datalinkx.dataserver.bean.domain.JobBean;
 import com.datalinkx.dataserver.bean.domain.JobLogBean;
 import com.datalinkx.dataserver.bean.domain.JobRelationBean;
 import com.datalinkx.dataserver.bean.domain.PageDomain;
+import com.datalinkx.dataserver.bean.domain.JobRelationBean;
 import com.datalinkx.dataserver.bean.dto.JobDto;
 import com.datalinkx.dataserver.bean.vo.JobVo;
 import com.datalinkx.dataserver.bean.vo.PageVo;

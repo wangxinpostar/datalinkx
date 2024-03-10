@@ -18,7 +18,7 @@ import { Network } from 'vis-network/standalone/esm/vis-network'
 import { EventEmitter } from 'events'
 import { listQuery } from '@/api/job/job'
 import { relationInfo } from '@/api/job/jobrelation'
-EventEmitter.defaultMaxListeners = 15 // 根据你的需要设置适当的数量
+EventEmitter.defaultMaxListeners = 0 // 根据你的需要设置适当的数量
 
 export default {
   data () {

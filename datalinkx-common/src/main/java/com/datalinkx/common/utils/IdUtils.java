@@ -13,10 +13,10 @@ public final class IdUtils {
 			"J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V",
 			"W", "X", "Y", "Z" };
 
-	
+
 	/**
 	 * 生成业务ID：folder_xxx， tb_xxx
-	 * 
+	 *
 	 * @param prefix
 	 * @return
 	 */

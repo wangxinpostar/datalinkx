@@ -1,6 +1,8 @@
 // CHECKSTYLE:OFF
 package com.datalinkx.datajob.action;
 
+import static com.datalinkx.common.constants.MetaConstants.JobStatus.JOB_STATUS_SUCCESS;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +27,6 @@ import com.datalinkx.datajob.client.datalinkxserver.DatalinkXServerClient;
 import com.datalinkx.datajob.client.flink.FlinkClient;
 import com.datalinkx.datajob.client.flink.response.FlinkJobAccumulators;
 import com.datalinkx.datajob.client.flink.response.FlinkJobStatus;
-import com.datalinkx.datajob.config.DsProperties;
 import com.datalinkx.datajob.job.ExecutorJobHandler;
 import com.datalinkx.driver.dsdriver.DsDriverFactory;
 import com.datalinkx.driver.dsdriver.IDsReader;
@@ -60,15 +61,10 @@ public class DataTransferAction extends AbstractDataTransferAction<DataTransJobD
     @Autowired
     private DatalinkXServerClient datalinkXServerClient;
 
-    @Autowired
-    private DsProperties dsProperties;
 
     @Resource(name = "messageHubServiceImpl")
     MessageHubService messageHubService;
 
-//    public boolean isSupportedDb(String fromDbType, String toDbTYpe) {
-//        return dsProperties.getDatasource().contains(fromDbType) && dsProperties.getDatasource().contains(toDbTYpe);
-//    }
 
     @Override
     protected void begin(DataTransJobDetail info) {
@@ -110,8 +106,10 @@ public class DataTransferAction extends AbstractDataTransferAction<DataTransJobD
                 .filterCount(jobExecCountDto.getFilterCount())
                 .errmsg(errmsg)
                 .build());
-        // 级联触发子任务
-        datalinkXServerClient.cascadeJob(info.getJobId());
+        // 父任务执行成功后级联触发子任务
+        if (JOB_STATUS_SUCCESS == status) {
+            datalinkXServerClient.cascadeJob(info.getJobId());
+        }
     }
 
     @Override
