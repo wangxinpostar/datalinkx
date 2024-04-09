@@ -19,6 +19,7 @@ import com.datalinkx.dataserver.bean.domain.JobBean;
 import com.datalinkx.dataserver.bean.domain.JobRelationBean;
 import com.datalinkx.dataserver.bean.domain.PageDomain;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import com.datalinkx.common.exception.DatalinkXServerException;
@@ -120,21 +121,21 @@ public class JobRelationService {
     public boolean checkJobHasCyclicDependency(Map<String, List<String>> taskGraph) {
         Map<String, Integer> inDegree = new HashMap<>();
 
-        // Initialize inDegree for each task
+        // 初始化默认taskGraph key入度都为0
         for (String task : taskGraph.keySet()) {
             inDegree.put(task, 0);
         }
 
-        // Calculate inDegree for each task
-//        for (List<String> dependencies : taskGraph.values()) {
-//            for (String dependency : dependencies) {
-//                inDegree.put(dependency, inDegree.getOrDefault(dependency, 0) + 1);
-//            }
-//        }
+        // 根据依赖关系累加入度
+        for (List<String> dependencies : taskGraph.values()) {
+            for (String dependency : dependencies) {
+                inDegree.put(dependency, inDegree.getOrDefault(dependency, 0) + 1);
+            }
+        }
 
         Queue<String> queue = new LinkedList<>();
 
-        // Add tasks with inDegree 0 to the queue
+        // 入度为0的根节点入队列
         for (String task : taskGraph.keySet()) {
             if (inDegree.get(task) == 0) {
                 queue.offer(task);
@@ -143,7 +144,7 @@ public class JobRelationService {
 
         int visitedCount = 0;
 
-        // Process tasks in the queue
+        // 依次把入度为0的节点出队列，并把其子节点入度-1，为0的节点再入队列
         while (!queue.isEmpty()) {
             String task = queue.poll();
             visitedCount++;

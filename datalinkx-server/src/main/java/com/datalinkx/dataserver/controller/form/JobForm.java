@@ -35,6 +35,8 @@ public class JobForm {
 		private SyncModeForm syncMode;
 		@JsonProperty("field_mappings")
 		private List<FieldMappingForm> fieldMappings;
+		@ApiModelProperty("是否覆盖数据")
+		private Integer cover = 0;
 	}
 
 	@Data
@@ -91,6 +93,13 @@ public class JobForm {
 	public static class JobLogPageForm extends JobPageForm {
 		@JsonProperty("job_id")
 		private String jobId;
+	}
+
+	@EqualsAndHashCode(callSuper = true)
+	@Data
+	public static class JobRelationPageForm extends JobPageForm {
+		@JsonProperty("job_name")
+		private String jobName;
 	}
 
 	@Data

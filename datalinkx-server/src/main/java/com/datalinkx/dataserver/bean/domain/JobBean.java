@@ -57,4 +57,7 @@ public class JobBean extends BaseEntity {
 	private Integer status;
 	@Column(name = "error_msg", nullable = true, columnDefinition = "longtext")
 	private String errorMsg;
+	// 0 不覆盖 1 覆盖
+	@Column(name = "cover")
+	private Integer cover;
 }

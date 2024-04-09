@@ -19,12 +19,12 @@ import com.datalinkx.common.utils.Base64Utils;
 import com.datalinkx.common.utils.ConnectIdUtils;
 import com.datalinkx.common.utils.JsonUtils;
 import com.datalinkx.dataserver.bean.domain.DsBean;
-import com.datalinkx.dataserver.bean.domain.DsTbBean;
+import com.datalinkx.dataserver.bean.domain.JobBean;
 import com.datalinkx.dataserver.bean.domain.PageDomain;
 import com.datalinkx.dataserver.bean.vo.PageVo;
 import com.datalinkx.dataserver.controller.form.DsForm;
 import com.datalinkx.dataserver.repository.DsRepository;
-import com.datalinkx.dataserver.repository.DsTbRepository;
+import com.datalinkx.dataserver.repository.JobRepository;
 import com.datalinkx.driver.dsdriver.DsDriverFactory;
 import com.datalinkx.driver.dsdriver.IDsDriver;
 import com.datalinkx.driver.dsdriver.IDsReader;
@@ -33,7 +33,6 @@ import com.datalinkx.driver.dsdriver.base.model.TableField;
 import com.datalinkx.driver.dsdriver.esdriver.EsSetupInfo;
 import com.datalinkx.driver.dsdriver.mysqldriver.MysqlSetupInfo;
 import com.datalinkx.driver.dsdriver.oracledriver.OracleSetupInfo;
-import com.datalinkx.driver.dsdriver.redisDriver.RedisSetupInfo;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +51,7 @@ public class DsService {
 	@Autowired
 	private DsRepository dsRepository;
 	@Autowired
-	private DsTbRepository dsTbRepository;
+	private JobRepository jobRepository;
 
 
 	/**
@@ -96,12 +95,6 @@ public class DsService {
 		// 2.3、检查连接情况
 		this.checkConnect(dsBean);
 
-		// 3、获取选中的表并创建
-		List<String> tbNameList = ObjectUtils.isEmpty(form.getTbNameList()) ? new ArrayList<>() : form.getTbNameList();
-		for (String tbName : tbNameList) {
-			xtbCreate(tbName, dsId);
-		}
-
 		dsRepository.save(dsBean);
 
 		return dsId;
@@ -116,16 +109,6 @@ public class DsService {
 				throw new DatalinkXServerException(StatusCode.DS_CONFIG_ERROR, "数据源附加信息转化Json格式异常");
 			}
 		}
-	}
-
-	public String xtbCreate(String tbName, String dsId) {
-		String xtbId = genKey("xtb");
-		DsTbBean dsTbBean = new DsTbBean();
-		dsTbBean.setTbId(xtbId);
-		dsTbBean.setName(tbName);
-		dsTbBean.setDsId(dsId);
-		dsTbRepository.save(dsTbBean);
-		return xtbId;
 	}
 
 
@@ -175,7 +158,7 @@ public class DsService {
 
 				return ConnectIdUtils.encodeConnectId(JsonUtils.toJson(oracleSetupInfo));
 			case "redis":
-				RedisSetupInfo redisSetupInfo = new RedisSetupInfo();
+				com.datalinkx.driver.dsdriver.redisDriver.RedisSetupInfo redisSetupInfo = new com.datalinkx.driver.dsdriver.redisDriver.RedisSetupInfo();
 				redisSetupInfo.setDatabase(Integer.parseInt(StringUtils.hasLength(dsBean.getDatabase()) ? dsBean.getDatabase() : "0"));
 				redisSetupInfo.setHost(dsBean.getHost());
 				redisSetupInfo.setPort(dsBean.getPort());
@@ -206,7 +189,14 @@ public class DsService {
 		return result;
 	}
 
+	@Transactional(rollbackFor = Exception.class)
 	public void del(String dsId) {
+		// 校验任务依赖
+		List<JobBean> dependJobs = jobRepository.findDependJobId(dsId);
+		if (!ObjectUtils.isEmpty(dependJobs)) {
+			throw new DatalinkXServerException(StatusCode.DS_HAS_JOB_DEPEND, "数据源存在流转任务依赖");
+		}
+
 		dsRepository.deleteByDsId(dsId);
 	}
 
@@ -244,8 +234,11 @@ public class DsService {
 		DsBean dsBean = dsRepository.findByDsId(dsId).orElseThrow(() -> new DatalinkXServerException(StatusCode.DS_NOT_EXISTS));
 		List<String> tableList = new ArrayList<>();
 		try {
-			IDsReader dsReader = DsDriverFactory.getDsReader(getConnectId(dsBean));
-			tableList = dsReader.treeTable(dsBean.getDatabase(), dsBean.getSchema()).stream().map(DbTree::getName).collect(Collectors.toList());
+			IDsDriver dsDriver = DsDriverFactory.getDriver(getConnectId(dsBean));
+			if (dsDriver instanceof IDsReader) {
+				IDsReader dsReader = (IDsReader) dsDriver;
+				tableList = dsReader.treeTable(dsBean.getDatabase(), dsBean.getSchema()).stream().map(DbTree::getName).collect(Collectors.toList());
+			}
 		} catch (Exception e) {
 			log.error("connect error", e);
 			throw new DatalinkXServerException(e);
@@ -261,11 +254,15 @@ public class DsService {
 	public List<TableField> fetchFields(String dsId, String tbName) {
 		DsBean dsBean = dsRepository.findByDsId(dsId).orElseThrow(() -> new DatalinkXServerException(StatusCode.DS_NOT_EXISTS));
 		try {
-			IDsReader dsReader = DsDriverFactory.getDsReader(getConnectId(dsBean));
-			return dsReader.getFields(dsBean.getDatabase(), dsBean.getSchema(), tbName);
+			IDsDriver dsDriver = DsDriverFactory.getDriver(getConnectId(dsBean));
+			if (dsDriver instanceof IDsReader) {
+				IDsReader dsReader = (IDsReader) dsDriver;
+				return dsReader.getFields(dsBean.getDatabase(), dsBean.getSchema(), tbName);
+			}
 		} catch (Exception e) {
 			log.error("connect error", e);
 			throw new DatalinkXServerException(e);
 		}
+		return new ArrayList<>();
 	}
 }

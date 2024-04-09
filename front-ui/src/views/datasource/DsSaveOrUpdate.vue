@@ -82,7 +82,7 @@
           :wrapperCol="wrapperCol"
         >
           <a-input
-            type="text"
+            type="password"
             :disabled="showable"
             v-decorator="['password', {rules: [{required: false, message: '请输入password'}]}]" />
         </a-form-item>
@@ -198,7 +198,7 @@ export default {
           this.confirmLoading = true
           if (this.type === 'add') {
             console.log(values)
-            addObj(values).then(res => {
+            await addObj(values).then(res => {
               if (res.status !== '0') {
                 this.$message.error(res.errstr)
               }

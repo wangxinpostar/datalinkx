@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    title="添加数据源"
+    title="新增数据流转任务"
     :width="640"
     :visible="visible"
     :maskClosable="false"
@@ -101,6 +101,7 @@
               </a-radio-button>
             </a-radio-group>
           </a-col>
+          <a-col :span="6" v-show="!isIncrement">开启数据覆盖: <a-switch v-model="cover" @change="changeCover" /></a-col>
           <a-col :span="6"><p v-show="isIncrement">请选择增量字段: </p></a-col>
           <a-col :span="12">
             <a-select v-show="isIncrement" v-model="incrementField" placeholder="请选择增量字段">
@@ -208,6 +209,7 @@ export default {
       targetFields: [],
       isIncrement: false,
       syncMode: 'overwrite',
+      cover: 0,
       incrementField: '',
       selectloading: false,
       redisToType: 'string',
@@ -242,6 +244,7 @@ export default {
             'scheduler_conf': this.schedulerConf,
             'field_mappings': this.mappings,
             'job_name': this.jobName,
+            'cover': this.cover,
             'sync_mode': {
               'mode': this.syncMode,
               'increate_field': this.incrementField
@@ -249,11 +252,15 @@ export default {
           }
           console.log(this.jobId)
           if (this.type === 'edit') {
-            await modifyObj(formData).catch(err => {
+            modifyObj(formData).catch(err => {
               this.$message.error(err.errstr)
             })
           } else {
-            await addObj(formData)
+            addObj(formData).then(res => {
+              if (res.status !== '0') {
+                this.$message.error(res.errstr)
+              }
+            })
           }
           setTimeout(() => {
             this.confirmLoading = false
@@ -304,6 +311,7 @@ export default {
           this.jobId = record.job_id
           this.syncMode = record.sync_mode.mode
           this.jobName = record.job_name
+          this.cover = record.cover
           console.log(this.syncMode)
           if (this.selectedTargetTable.includes(this.redisSpitKey)) {
             const arr = this.selectedTargetTable.split(this.redisSpitKey)
@@ -350,6 +358,7 @@ export default {
       }
     },
     handleFromTbChange (value) {
+      this.selectloading = true
       this.selectedSourceTable = value
       this.queryParam = {
         'ds_id': this.selectedDataSource,
@@ -358,12 +367,20 @@ export default {
       getDsTbFieldsInfo({
         ...this.queryParam
       }).then(res => {
+        this.selectloading = false
         this.sourceFields = res.result
       })
     },
     // 目标数据源为redis时切换类型
     changeToRedisType (val) {
       console.log(val)
+    },
+    changeCover (checked) {
+      if (checked) {
+        this.cover = 1
+      } else {
+        this.cover = 0
+      }
     },
     changeSyncConfig (value) {
       if (value.target.value === 'increment') {
@@ -376,6 +393,7 @@ export default {
       }
     },
     handleToTbChange (value) {
+      this.selectloading = true
       this.selectedTargetTable = value
       this.queryParam = {
         'ds_id': this.selectedTargetSource,
@@ -384,7 +402,7 @@ export default {
       getDsTbFieldsInfo({
         ...this.queryParam
       }).then(res => {
-        console.log(res)
+        this.selectloading = false
         this.targetFields = res.result
       })
     },
@@ -404,8 +422,10 @@ export default {
       this.isIncrement = false
       this.mappings = []
       this.syncMode = ''
+      this.cover = 0
       this.incrementField = ''
       this.schedulerConf = ''
+      this.jobName = ''
     },
     removeMapping (index) {
       this.mappings.splice(index, 1)

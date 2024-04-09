@@ -39,7 +39,7 @@
     </div>
     <div class="table-operator">
       <!--      v-action="'upms:user:add'"-->
-      <a-button @click="$refs.DsSaveOrUpdate.edit('','add')" icon="plus" type="primary">新建</a-button>
+      <a-button @click="$refs.refDsConfig.show('','add')" icon="plus" type="primary">新建</a-button>
     </div>
     <a-table
       :columns="columns"
@@ -50,9 +50,10 @@
       @change="handleTableChange"
     >
     </a-table>
-    <ds-save-or-update
+    <ds-config
       @ok="handleOk"
-      ref="DsSaveOrUpdate"
+      :currentDs="currentDs"
+      ref="refDsConfig"
     />
   </a-card>
 </div>
@@ -60,14 +61,16 @@
 
 <script>
 import { pageQuery, delObj, getDsGroup } from '@/api/datasource/datasource'
-import DsSaveOrUpdate from './DsSaveOrUpdate.vue'
+// import DsSaveOrUpdate from './DsSaveOrUpdate.vue'
+import DsConfig from './DsConfig.vue'
 import { dsTypeList } from './const'
 import { DATA_SOURCE_TYPE } from '@/api/globalConstant'
 
 export default {
   name: 'ContainerBottom',
   components: {
-    DsSaveOrUpdate
+    // DsSaveOrUpdate,
+    DsConfig
   },
   data () {
     return {
@@ -168,6 +171,7 @@ export default {
     },
     getAllDsNumber () {
       getDsGroup().then(res => {
+        this.loading = false
         if (res.status === '0') {
           this.dsGroupNumber = Object.assign({}, this.dsGroupNumber, res.result)
         } else {
@@ -192,21 +196,36 @@ export default {
     },
 
     edit (record) {
-      this.$refs.DsSaveOrUpdate.edit(record.dsId, 'edit')
-      this.init()
+      this.$refs.refDsConfig.show(record.dsId, 'edit', record)
+      // this.init()
     },
     delete (record) {
       console.log(record)
+      // delObj(record.dsId).then(res => {
+      //   this.$message.info('删除成功')
+      //   this.init()
+      //   this.getAllDsNumber()
+      // })
       delObj(record.dsId).then(res => {
-        this.$message.info('删除成功')
-        this.init()
+        if (res.status === '0') {
+          this.$message.info('删除成功')
+          this.init()
+          this.getAllDsNumber()
+        } else {
+          this.$message.error(res.errstr)
+        }
+      }).finally(() => {
+        this.loading = false
       })
     },
     show (record) {
-      this.$refs.DsSaveOrUpdate.edit(record.dsId, 'show')
+      this.$refs.refDsConfig.show(record.dsId, 'show', record)
     },
-    handleOk () {
+    handleOk (data) {
       this.init()
+      if (data.type === 'add') {
+        this.getAllDsNumber()
+      }
     },
     queryData () {
       this.pages.current = 1
